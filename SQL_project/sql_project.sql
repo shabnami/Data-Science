@@ -80,7 +80,20 @@ Include in your output the name of the court, and the name of the member
 formatted as a single column. Ensure no duplicate data, and order by
 the member name. */
 
-
+SELECT DISTINCT 
+CASE WHEN B.facid =0
+THEN 'Tennis Court 1'
+ELSE 'Tennis Court 2'
+END AS facid, 
+CASE WHEN M.surname = 'GUEST'
+THEN M.surname
+ELSE concat( M.surname, ', ', M.firstname ) 
+END AS member_name
+FROM country_club.Bookings B
+JOIN country_club.Members M ON B.memid = M.memid
+WHERE facid
+IN ( 0, 1 ) 
+ORDER BY member_name, facid
 
 /* Q8: How can you produce a list of bookings on the day of 2012-09-14 which
 will cost the member (or guest) more than $30? Remember that guests have
@@ -89,10 +102,58 @@ the guest user's ID is always 0. Include in your output the name of the
 facility, the name of the member formatted as a single column, and the cost.
 Order by descending cost, and do not use any subqueries. */
 
+SELECT F.name AS Facility_name, 
+CASE 
+WHEN M.surname = 'GUEST'
+THEN M.surname
+ELSE CONCAT( M.surname,', ', M.firstname ) 
+END AS Member_name, 
+CASE 
+WHEN M.surname = 'GUEST'
+THEN F.guestcost * B.slots
+ELSE F.membercost * B.slots
+END AS cost
+FROM country_club.Bookings B
+INNER JOIN country_club.Facilities F 
+ON B.facid = F.facid
+INNER JOIN country_club.Members M
+ON B.memid = M.memid
+WHERE B.starttime BETWEEN '2012-09-14' AND '2012-09-15'
+HAVING cost >30
+ORDER BY cost DESC
 
 /* Q9: This time, produce the same result as in Q8, but using a subquery. */
 
+SELECT F.name AS Facility_name, 
+CASE 
+WHEN M.surname = 'GUEST'
+THEN M.surname
+ELSE CONCAT( M.surname,', ', M.firstname ) 
+END AS Member_name, 
+CASE 
+WHEN M.surname = 'GUEST'
+THEN F.guestcost * B.slots
+ELSE F.membercost * B.slots
+END AS cost
+FROM (SELECT * 
+      FROM country_club.Bookings
+      WHERE starttime BETWEEN '2012-09-14' AND '2012-09-15') B 
+INNER JOIN country_club.Facilities F 
+ON B.facid = F.facid
+INNER JOIN country_club.Members M
+ON B.memid = M.memid
+HAVING cost >30
+ORDER BY cost DESC
 
 /* Q10: Produce a list of facilities with a total revenue less than 1000.
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
+
+SELECT F.name,
+CASE WHEN B.memid =0 THEN B.slots * F.guestcost 
+     ELSE B.slots * F.guestcost END AS Revenue
+FROM country_club.Facilities F
+JOIN country_club.Bookings B ON F.facid = B.facid
+GROUP BY F.name
+HAVING Revenue <1000
+ORDER BY Revenue
